@@ -82,3 +82,26 @@ curl -X POST http://localhost:8080/convert \
 ## Environment Variables
 
 - `PORT` – port to listen on (default `3000` locally, `8080` in Docker)
+
+## Build and deploy in google cloud
+```bash
+gcloud config set project YOUR_PROJECT_ID
+gcloud config set run/region us-east1
+
+gcloud builds submit --tag gcr.io/$GOOGLE_CLOUD_PROJECT/lv-img-conv-api
+
+gcloud run deploy lv-img-conv-api \
+  --image gcr.io/$GOOGLE_CLOUD_PROJECT/lv-img-conv-api \
+  --platform managed \
+  --allow-unauthenticated \
+  --port 8080
+
+# (add --max-instances to limit the number of container instances)
+# e.g. limit to 3 instances:
+gcloud run deploy lv-img-conv-api \
+  --image gcr.io/$GOOGLE_CLOUD_PROJECT/lv-img-conv-api \
+  --platform managed \
+  --allow-unauthenticated \
+  --port 8080 \
+  --max-instances 1
+```
