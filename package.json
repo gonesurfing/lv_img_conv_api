@@ -20,7 +20,8 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "multer": "^2.0.2",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "setimmediate": "^1.0.5"
   },
   "devDependencies": {
     "esbuild": "^0.25.8"
