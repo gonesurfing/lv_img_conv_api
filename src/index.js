@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import { convertImageBlob } from 'lv_img_conv/lib/convert'
-import { ImageMode, ImageModeUtil, OutputMode } from 'lv_img_conv/lib/enums';
+import { convertImageBlob } from '../lib/convert'
+import { ImageMode, ImageModeUtil, OutputMode } from '../lib/enums';
 import fetch from 'node-fetch';
 import { loadImage } from 'canvas';
 
@@ -70,6 +70,7 @@ app.post(
         outName: 'converted',
       };
       if (q.maxSize) {
+        console.log(`Resizing image to max size: ${q.maxSize}`);
         const [mw, mh] = q.maxSize.toLowerCase().split('x').map(n => parseInt(n, 10));
         if (!isNaN(mw) && !isNaN(mh)) {
           opts.overrideWidth = mw;
