@@ -766,12 +766,12 @@ async function convertImageBlob(img: Image|Uint8Array, options: Partial<Converte
                     ImageMode.ICF_TRUE_COLOR_ARGB8565,
                     ImageMode.ICF_TRUE_COLOR_ARGB8565_RBSWAP,
                     ImageMode.ICF_TRUE_COLOR_ARGB8888
-                ].map(cf => new Converter(img.width, img.height, imageData, alpha, Object.assign({}, options, { cf })).convert())) as string[];
+                ].map(cf => new Converter(w, h, imageData, alpha, Object.assign({}, options, { cf })).convert())) as string[];
                 c_res_array = arrayList.join("");
             } else
                 c_res_array = await c_creator.convert() as string;
         } else {
-            const binaryConv = new Converter(img.width, img.height, imageData, alpha, options);
+            const binaryConv = new Converter(w, h, imageData, alpha, options);
             bin_res_blob = await binaryConv.convert() as ArrayBuffer;
         }
     } else {
