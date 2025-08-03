@@ -1,6 +1,3 @@
-/dist
-/node_modules
-/test
 /.git
 /.vscode
 /.DS_Store
