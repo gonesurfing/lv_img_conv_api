@@ -7,6 +7,7 @@ This application takes an image, resizes it, and converts it to LVGL format.
 import os
 import tempfile
 from urllib.parse import urlparse
+import logging
 
 import requests
 from flask import Flask, request, jsonify, send_file
@@ -18,6 +19,9 @@ from resize_image import resize_image
 from LVGLImage.LVGLImage import LVGLImage, ColorFormat, OutputFormat, CompressMethod
 
 app = Flask(__name__)
+
+logging.basicConfig(level=logging.INFO, force=True)
+logger = logging.getLogger(__name__)
 
 # Set maximum file size for uploads (16MB)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -48,7 +52,7 @@ def convert_image():
 
     # Handle file uploads (multipart/form-data) or JSON parameters with URL
     if request.files and 'image' in request.files:
-        print("Received file upload")
+        logger.info("Received file upload")
         # Process file upload (requires multipart/form-data)
         file = request.files['image']
         if file.filename == '' or not allowed_file(file.filename):
@@ -61,13 +65,13 @@ def convert_image():
             if request.form.get('params'):
                 import json
                 data = json.loads(request.form.get('params'))
-                print(f"Extracted JSON parameters from form: {data}")
+                logger.info("Extracted JSON parameters from form: %s", data)
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON in params field'}), 400
     elif request.is_json:
         # Process JSON request with URL
         data = request.json
-        print(f"Received JSON data: {data}")
+        logger.info("Received JSON data: %s", data)
 
         # Download image from URL
         if 'url' not in data:
@@ -98,6 +102,8 @@ def convert_image():
     else:
         return jsonify({'error': 'No image file or URL provided'}), 400
 
+    # Get optional crop parameters from JSON data
+    crop_params = data.get('crop')
     # Get resize parameters from JSON data
     width = None
     height = None
@@ -123,13 +129,13 @@ def convert_image():
         # Only one dimension specified
         target_size = width if width else height
         try:
-            temp_resized = resize_image(temp_input, temp_resized, target_size)
+            temp_resized = resize_image(temp_input, temp_resized, target_size, crop=crop_params)
         except Exception as e:
             return jsonify({'error': f'Error resizing image: {str(e)}'}), 500
     else:
         # Both dimensions specified
         try:
-            temp_resized = resize_image(temp_input, temp_resized, (width, height))
+            temp_resized = resize_image(temp_input, temp_resized, (width, height), crop=crop_params)
         except Exception as e:
             return jsonify({'error': f'Error resizing image: {str(e)}'}), 500
 
@@ -244,8 +250,10 @@ def index():
         },
         'usage': 'See /formats for detailed API documentation'
     }
-    print("Root endpoint accessed, returning:", response)
+    logger.info("Root endpoint accessed, returning: %s", response)
     return jsonify(response)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    # Use PORT environment variable (default 8080) and disable debug by default
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)

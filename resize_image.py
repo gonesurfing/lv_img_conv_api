@@ -10,16 +10,19 @@ import os
 import argparse
 from pathlib import Path
 from typing import Tuple, Optional, Union
+import logging
 
 from PIL import Image
 
+logger = logging.getLogger(__name__)
 
 def resize_image(
     input_path: str,
     output_path: Optional[str] = None,
     target_size: Union[Tuple[int, int], int] = None,
     keep_aspect_ratio: bool = True,
-    resampling_method: int = Image.Resampling.LANCZOS
+    resampling_method: int = Image.Resampling.LANCZOS,
+    crop: Optional[dict] = None
 ) -> str:
     """
     Resize an image to the specified dimensions.
@@ -30,7 +33,8 @@ def resize_image(
         target_size: Target size as (width, height) tuple or single dimension (same aspect ratio)
         keep_aspect_ratio: If True, maintains aspect ratio when resizing
         resampling_method: PIL resampling filter (default: LANCZOS for high quality)
-    
+        crop: Optional dict with keys 'left','top','right','bottom' specifying pixels to crop before resizing
+     
     Returns:
         Path to the resized image file
     
@@ -53,9 +57,35 @@ def resize_image(
         input_base = Path(input_path).stem
         output_path = str(Path(input_path).parent / f"{input_base}_resized{file_ext}")
 
-    # Open and get original dimensions
+    # Open image and apply cropping if requested
     img = Image.open(input_path)
+    if crop:
+        orig_w, orig_h = img.size
+        left = crop.get('left', 0)
+        top = crop.get('top', 0)
+        right_crop = crop.get('right', 0)
+        bottom_crop = crop.get('bottom', 0)
+        right = orig_w - right_crop
+        bottom = orig_h - bottom_crop
+        # Ensure coordinates are within image bounds
+        left = max(0, min(left, orig_w))
+        top = max(0, min(top, orig_h))
+        right = max(left, min(right, orig_w))
+        bottom = max(top, min(bottom, orig_h))
+        img = img.crop((left, top, right, bottom))
+        logger.info("Cropped image to: %d, %d, %d, %d", left, top, right, bottom)
+    # Determine dimensions
     orig_width, orig_height = img.size
+    # If no target size provided, only cropping is applied
+    if target_size is None:
+        # Ensure output path
+        if output_path is None:
+            input_base = Path(input_path).stem
+            file_ext = Path(input_path).suffix
+            output_path = str(Path(input_path).parent / f"{input_base}_resized{file_ext}")
+        # Save cropped image
+        img.save(output_path, quality=95 if Path(input_path).suffix.lower() in ['.jpg', '.jpeg'] else None)
+        return output_path
 
     # Calculate target dimensions
     if target_size is None:
@@ -90,6 +120,7 @@ def resize_image(
         raise ValueError("Target size must be a single integer or a (width, height) tuple")
 
     # Perform the resize operation
+    logger.info("Resizing image to: %d, %d", target_width, target_height)
     resized_img = img.resize((target_width, target_height), resampling_method)
 
     # Save the resized image
@@ -137,6 +168,14 @@ def main():
         help="Resampling method to use"
     )
 
+    parser.add_argument(
+        "--crop",
+        type=int,
+        nargs=4,
+        metavar=("LEFT", "TOP", "RIGHT", "BOTTOM"),
+        help="Crop the image before resizing (pixels from each side)"
+    )
+
     args = parser.parse_args()
 
     # Map resampling method names to PIL constants
@@ -149,6 +188,15 @@ def main():
     }
 
     try:
+        crop = None
+        if args.crop:
+            crop = {
+                'left': args.crop[0],
+                'top': args.crop[1],
+                'right': args.crop[2],
+                'bottom': args.crop[3]
+            }
+
         if args.size:
             target_size = args.size
         else:
@@ -159,14 +207,15 @@ def main():
             args.output,
             target_size,
             not args.no_aspect_ratio,
-            resampling_methods[args.resampling]
+            resampling_methods[args.resampling],
+            crop
         )
 
-        print(f"Image resized successfully: {output_path}")
-        print(f"New dimensions: {Image.open(output_path).size}")
+        logger.info("Image resized successfully: %s", output_path)
+        logger.info("New dimensions: %s", Image.open(output_path).size)
 
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error("Error: %s", e)
         return 1
 
     return 0

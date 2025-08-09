@@ -8,6 +8,8 @@ from enum import Enum
 from typing import List
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 try:
     import png
 except ImportError:
@@ -1471,7 +1473,7 @@ def main():
     for f, img in output:
         logging.info(f"len: {img.data_len} for {path.basename(f)} ")
 
-    print(f"done {len(files)} files")
+    logger.debug("done %d files", len(files))
 
 
 def test():
