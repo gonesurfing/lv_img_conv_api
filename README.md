@@ -85,19 +85,13 @@ curl -X POST http://localhost:8080/convert \
 
 ## Build and deploy in Google Cloud
 ```bash
-gcloud config set project YOUR_PROJECT_ID
+export $GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
+gcloud config set project $GOOGLE_CLOUD_PROJECT
 gcloud config set run/region us-east1
 
 gcloud builds submit --tag gcr.io/$GOOGLE_CLOUD_PROJECT/lv-img-conv-api
 
-gcloud run deploy lv-img-conv-api \
-  --image gcr.io/$GOOGLE_CLOUD_PROJECT/lv-img-conv-api \
-  --platform managed \
-  --allow-unauthenticated \
-  --port 8080
-
-# (add --max-instances to limit the number of container instances)
-# e.g. limit to 3 instances:
+# limit to 1 instance:
 gcloud run deploy lv-img-conv-api \
   --image gcr.io/$GOOGLE_CLOUD_PROJECT/lv-img-conv-api \
   --platform managed \
